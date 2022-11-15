@@ -17,6 +17,11 @@ Mappings:
     x-large:
       cpu: 4096
       memory: 8192
+  ALB_Type:
+    Internet-facing:
+      type: "internet"
+    Internal:
+      type: "internal"
 Resources:
   ECSTaskRole:
       Type: AWS::IAM::Role
@@ -305,7 +310,7 @@ Resources:
   PublicLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Scheme: internet-facing
+      Scheme: !FindInMap [ALB_Type, {{service_instance.inputs.alb_type}}, type]
       LoadBalancerAttributes:
       - Key: idle_timeout.timeout_seconds
         Value: '30'

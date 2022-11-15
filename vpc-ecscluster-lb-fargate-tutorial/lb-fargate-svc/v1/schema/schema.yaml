@@ -31,6 +31,11 @@ schema:
           default: "public.ecr.aws/z9d2n7e1/nginx:1.21.0"
           minLength: 1
           maxLength: 200
+        alb_type: 
+          type: string
+          description: "The type of ALB"
+          enum: ["Internet-facing", "Internal"]
+          default: "Internal"  
         indexhtmlcontent:
           type: string
           description: "The content of the home page"
