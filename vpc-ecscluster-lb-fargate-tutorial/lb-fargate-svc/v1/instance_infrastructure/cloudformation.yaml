@@ -1,6 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Deploy a service on AWS Fargate, hosted in a public subnet, and accessible via a public load balancer.
 Mappings:
+  EnvironmentNameConfig:
+    Environment:
+      Name: '{{environment.name}}'
   TaskSize:
     x-small:
       cpu: 256
@@ -17,13 +20,22 @@ Mappings:
     x-large:
       cpu: 4096
       memory: 8192
-  ALBType:
-    InternetFacing:
-      type: "internet-facing"
-    Internal:
-      type: "internal"
 Resources:
-  ECSTaskRole:
+  # Register service in ServiceDiscovery Service
+  DiscoveryService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      Description: Discovery Service for the Demo Application
+      DnsConfig:
+        RoutingPolicy: MULTIVALUE
+        DnsRecords:
+          - TTL: 60
+            Type: A
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: '{{service_instance.inputs.service_discovery_name}}'
+      NamespaceId: '{{environment.outputs.PrivateNamespace}}'
+ECSTaskRole:
       Type: AWS::IAM::Role
       Properties:
           AssumeRolePolicyDocument:
@@ -109,6 +121,9 @@ Resources:
         - ContainerName: '{{service_instance.name}}'
           ContainerPort: '{{service_instance.inputs.port}}'
           TargetGroupArn: !Ref 'TargetGroup'
+      Tags:
+        - Key: Name
+          Value: !FindInMap ['EnvironmentNameConfig', 'Environment', 'Name']
 
   # A target group. This is used for keeping track of all the tasks, and
   # what IP addresses / port numbers they have. You can query it yourself,
@@ -133,6 +148,9 @@ Resources:
       Protocol: HTTP
       UnhealthyThresholdCount: 2
       VpcId: '{{environment.outputs.VpcId}}'
+      Tags:
+        - Key: Name
+          Value: !FindInMap ['EnvironmentNameConfig', 'Environment', 'Name']
 
   # Create a rule on the load balancer for routing traffic to the target group
   LoadBalancerRule:
@@ -306,11 +324,14 @@ Resources:
           # Allow access to ALB from anywhere on the internet
           - CidrIp: 0.0.0.0/0
             IpProtocol: -1
+      Tags:
+        - Key: Name
+          Value: !FindInMap ['EnvironmentNameConfig', 'Environment', 'Name']
 
   PublicLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Scheme: !FindInMap [ALBType, {{service_instance.inputs.alb_type}}, type]
+      Scheme: internet-facing # !FindInMap [ALBType, {{service_instance.inputs.alb_type}}, type]
       LoadBalancerAttributes:
       - Key: idle_timeout.timeout_seconds
         Value: '30'
@@ -320,6 +341,9 @@ Resources:
         - '{{environment.outputs.PublicSubnetOne}}'
         - '{{environment.outputs.PublicSubnetTwo}}'
       SecurityGroups: [!Ref 'PublicLoadBalancerSG']
+      Tags:
+        - Key: Name
+          Value: !FindInMap ['EnvironmentNameConfig', 'Environment', 'Name']
 
   PublicLoadBalancerListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -336,3 +360,6 @@ Outputs:
   ServiceEndpoint:
     Description: The URL to access the service
     Value: !Sub "http://${PublicLoadBalancer.DNSName}"
+  ServiceDiscovery:
+    Description: The registered service discovery Service Id
+    Value: !Ref DiscoveryService
