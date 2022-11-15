@@ -19,7 +19,7 @@ Mappings:
       memory: 8192
   ALBType:
     InternetFacing:
-      type: "internet"
+      type: "internet-facing"
     Internal:
       type: "internal"
 Resources:
