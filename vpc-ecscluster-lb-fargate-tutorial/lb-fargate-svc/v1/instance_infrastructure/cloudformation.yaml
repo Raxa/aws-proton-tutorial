@@ -17,8 +17,8 @@ Mappings:
     x-large:
       cpu: 4096
       memory: 8192
-  ALB_Type:
-    Internet-facing:
+  ALBType:
+    InternetFacing:
       type: "internet"
     Internal:
       type: "internal"
@@ -310,7 +310,7 @@ Resources:
   PublicLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Scheme: !FindInMap [ALB_Type, {{service_instance.inputs.alb_type}}, type]
+      Scheme: !FindInMap [ALBType, {{service_instance.inputs.alb_type}}, type]
       LoadBalancerAttributes:
       - Key: idle_timeout.timeout_seconds
         Value: '30'
